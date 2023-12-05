@@ -14,17 +14,45 @@ The goal is to install and build a Kubernetes cluster with the following require
 
 The repository also includes the ressources used for this project
 
+### Platform & Limitations
+
+The following virtual plattform is hosted by the school to execute the project:
+
+![smart-learn-plan](Docs/Pictures/smart_learn_refference.png)
+
+#### vmKL1
+The **vmKL1** is the management machine used to setup, administer and access the kubernetes cluster.
+It is a virtual Kali Linux Machine with internet access.
+
+The VM Specs are:
+* CPU: 
+* RAM:
+* Storage:
+* Network: Access to vmLM1 & Internet
+* IP: 192.168.110.60
+
+#### vmLM11
+The **vmLM11** is the Kubernetes host itself. It will act as Control Plane (Master Node) & Data Plane (Worker Node), as we are 
+
+The VM Specs are:
+* CPU: 
+* RAM: 
+* Storage: 
+* Network: Access to vmKL1 & Internet
+* IP: 192.168.110.60
 
 ## What is awx?
 
-AWX is an open-source automation platform that provides a web-based user interface, REST API, and task engine built on top of Ansible. Developed by Red Hat, AWX serves as the upstream project for the Ansible Automation Plattform, offering a flexible and scalable solution for managing automation tasks and workflows.
+AWX is an open-source automation platform that provides a web-based user interface, REST API, and task engine built on top of Ansible.\
+Developed by Red Hat, AWX serves as the upstream project for the Ansible Automation Plattform, offering a flexible and scalable solution for managing automation tasks and workflows.
 
 [ansible/awx](https://github.com/ansible/awx)
 
 
 ## What is code-server?
 
-Code-server is an open-source platform that allows developers to run Visual Studio Code (VS Code) in a remote server environment, accessed through a web browser. Code-server containers extend this concept further by encapsulating the code-server application and its dependencies within a containerized environment.
+Code-server is an open-source platform that allows developers to run Visual Studio Code (VS Code) in a remote server environment, accessed through a web browser.\
+Code-server containers extend this concept further by encapsulating the code-server application and its dependencies within a containerized environment.
 
 [coder/code-server](https://github.com/coder/code-server)
 
