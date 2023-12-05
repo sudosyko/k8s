@@ -54,8 +54,8 @@ Installed Software:
 * tmux
 * ansible
 
-### vmLM11
-The **vmLM11** is the Kubernetes host itself. It will act as Control Plane (Master Node) & Data Plane (Worker Node), as this is the only server provided for the project.
+### vmLM1
+The **vmLM1** is the Kubernetes host itself. It will act as Control Plane (Master Node) & Data Plane (Worker Node), as this is the only server provided for the project.
 
 The VM Specs are:
 * OS: Ubuntu 22.04.2 LTS
@@ -66,8 +66,12 @@ The VM Specs are:
 * Network: Access to vmKL1 & Internet
 * IP: 192.168.110.60
 
+Installed Software:
 
-## Setup Guide
+* microk8s
+
+
+## Manual Setup Guide
 
 ### Pre-Requisites vmlKL1:
 
@@ -84,14 +88,6 @@ sudo systemctl start snapd
 
 # Install vscode with snap store
 sudo snap install --classic code 
-```
-
-### Install Ansible on vmKL1 & setup ansible management access to vmLM1
-This step isn´t mandatory, however it can be useful to have ansible installed on the management machine due to all the utilities that are shiped with it.
-
-```bash
-sudo apt install software-properties-common
-sudo apt-get -y install ansible
 ```
 
 Applications installed with the snap store aren´t stored in /usr/bin therefore they are only available over the full path (/snap/bin/code)
@@ -120,12 +116,63 @@ sudo systemctl restart sshd
 sudo apt update -y && apt upgrade -y
 ```
 
+> Now vmLM1 is accessible over ssh!
+
 ### Install & initialy setup Kubernetes on vmLM1
 
 ```bash
+## AS root:
+# Install lightweight Kubernetes
+snap install --classic microk8s
+
+# Check status of installation & cluster setup
+microk8s status --wait-ready
+
+# Alias for ease of use so you dont have to pass microk8s everytime you want to do a kubectl command
+alias mkctl="microk8s kubectl"
+
+## AS vmadmin:
+# Allow vmadmin to use the microk8s utility & administer the cluster
+sudo usermod -a -G microk8s vmadmin
+mkdir ~/.kube
+cd ~/.kube
+sudo microk8s config > config
+cd ~
+sudo chown -f -R vmadmin ~/.kube
+sudo reboot
+
+# Alias for ease of use so you dont have to pass microk8s everytime you want to do a kubectl command
+alias mkctl="microk8s kubectl"
+
+# add alias permanently to your bash shell.
+echo 'alias mkctl="microk8s kubectl"' >> ~/.bashrc 
+
+# set up autocomplete in bash into the current shell, bash-completion package should be installed first.
+source <(kubectl completion bash) 
+
+# add autocomplete permanently to your bash shell.
+echo "source <(kubectl completion bash)" >> ~/.bashrc 
+
+mkctl enable dashboard
+mkctl enable dns
+
+kubectl port-forward -n kube-system service/kubernetes-dashboard 10443:443
+kubectl get all -n kubernetes-dashboard
+
+
+
 
 ```
 
 ```bash
 
+```
+
+## Install Ansible on vmKL1 & setup ansible management access to vmLM1
+This step isn´t mandatory, however it can be useful to have ansible installed on the management machine due to all the utilities that are shiped with it.
+
+
+```bash
+sudo apt install software-properties-common
+sudo apt-get -y install ansible
 ```
