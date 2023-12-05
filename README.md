@@ -25,19 +25,19 @@ The **vmKL1** is the management machine used to setup, administer and access the
 It is a virtual Kali Linux Machine with internet access.
 
 The VM Specs are:
-* CPU: 
-* RAM:
-* Storage:
+* CPU: 2 vCPUs
+* RAM: 16 GB
+* Storage: /dev/sda 35 GB 
 * Network: Access to vmLM1 & Internet
-* IP: 192.168.110.60
+* IP: 192.168.110.70
 
 #### vmLM11
 The **vmLM11** is the Kubernetes host itself. It will act as Control Plane (Master Node) & Data Plane (Worker Node), as we are 
 
 The VM Specs are:
-* CPU: 
-* RAM: 
-* Storage: 
+* CPU: 4 vCPUs
+* RAM: 12 GB
+* Storage: /dev/sda 16 GB
 * Network: Access to vmKL1 & Internet
 * IP: 192.168.110.60
 
@@ -56,28 +56,36 @@ Code-server containers extend this concept further by encapsulating the code-ser
 
 [coder/code-server](https://github.com/coder/code-server)
 
-## Setup
+## Setup Guide
 
-### Pre-Reqs vmlKL1:
-#### Install useful tools:
+### Pre-Requisites vmlKL1:
 
-> Download the VSCode .deb Package on the following Link:
+```bash
+# Install the following packages:
+sudo apt install -y tmux ansible vim snapd
 
-[VSCode .deb Package](https://go.microsoft.com/fwlink/?LinkID=760868)
+# Enable & start the snap store
+sudo systemctl enable snapd
+sudo systemctl start snapd
 
-> Install following packages:
- * `apt install -y ./<downloaded_vscode_package>.deb`
- * `apt install -y tmux ansible`
+# Install vscode with snap store
+sudo snap install --classic code
+
+```
+> applications installed with the snap store aren´t stored in /usr/bin therefore they are only available over the full path (/snap/bin/code) fix this with the following command:
+```bash
+sudo ln -s /snap/bin/code /usr/bin/code
+```
 
 
-### Pre-Reqs vmLM1:
-#### open ufw Ports:
 
-> This covers all the necessary ports needed access vmLM1 over SSH
-and access kubernetes dashboard, awx and code-server from vmKL1
+### Pre-Requisites vmLM1:
 
- * `ufw allow 22, 443, 8443, 10443`
- * `snap install microk8s --classic`
+> This covers all the necessary ports needed access vmLM1 over SSH and access of the kubernetes dashboard, awx and code-server from vmKL1
+```bash
+sudo ufw allow 22, 443, 8443, 10443
+sudo snap install microk8s --classic
+```
 
 
 
