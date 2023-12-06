@@ -1,7 +1,7 @@
 # THIS PROJECT WAS ABORTED DUE TO THE PLATFORM LIMITATIONS!!!!!
 Mircok8s pods were stuck in startup loop:
 
-![smart-learn-plan](Docs/Pictures/awx-fail.png)
+![smart-learn-plan](/Docs/Pictures/awx_fail.png)
 
 
 sudosyko/k8s_awx
@@ -38,7 +38,7 @@ Code-server containers extend this concept further by encapsulating the code-ser
 
 The following virtual plattform is hosted by the school to execute the project:
 
-![smart-learn-plan](Docs/Pictures/smart_learn_refference.png)
+![smart-learn-plan](/Docs/Pictures/smart_learn_refference.png)
 
 ### vmKL1
 The **vmKL1** is the management machine used to setup, administer and access the kubernetes cluster.

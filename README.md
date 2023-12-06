@@ -18,7 +18,7 @@ The repository also includes the ressources used for this project (check the arc
 
 The following virtual plattform is hosted by the school to execute the project:
 
-![smart-learn-plan](Docs/Pictures/smart_learn_refference.png)
+![smart-learn-plan](/Docs/Pictures/smart_learn_refference.png)
 
 ### vmKL1
 The **vmKL1** is the management machine used to setup, administer and access the kubernetes cluster.
