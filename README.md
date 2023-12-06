@@ -1,10 +1,10 @@
 sudosyko/k8s
-# SA II Project: on Kubernetes Cluster 
+# SA II Project: wiki.js on Kubernetes Cluster 
 
 ## About this Project 
 
 This is the project documentation for the System Administration II course at TSBE. 
-This Project covers installing and scaling  on Kubernetes. 
+This Project covers installing and scaling wiki.js on Kubernetes. 
 
 The goal is to install and build a Kubernetes cluster with the following requirements in place:
 * scalability through the orchestration with Kubernetes
@@ -13,6 +13,30 @@ The goal is to install and build a Kubernetes cluster with the following require
 * secure configuration to minimize security risk
 
 The repository also includes the ressources used for this project (check the archive for failed attempts 😉)
+
+## What is wiki.js ?
+
+Wiki.js is an open-source, modern wiki application that allows you to collaboratively create and edit content in a user-friendly manner. It is designed to be easy to set up and use, making it a popular choice for knowledge management, documentation, and information sharing within teams or organizations. Here are some key features and characteristics of Wiki.js:
+
+* Markdown Support
+* Version Control
+* Access Control
+* User-Friendly Interface
+* Search Functionality
+* Customization
+* Modern Architecture
+* Integration and Extensibility
+* Multi-Language Support
+* Offline Mode
+* Security Features
+
+Overall, Wiki.js is a versatile and feature-rich solution for creating and managing documentation and knowledge bases. It is well-suited for teams and organizations that prioritize collaboration, simplicity, and ease of use in their documentation processes.
+
+[wiki.js Official Homepage](https://js.wiki/)
+
+**Used Ports:**
+* 3000 Frontend
+* 3006 MariaDB access
 
 ## Platform & Limitations
 
@@ -53,8 +77,25 @@ The VM Specs are:
 
 Installed Software:
 
-* minikube
+* minikube version: v1.32.0
+* iptables
+* iptables-persitant
 
+## Security & Hardening
+The container network is setup in a way that only necessary communication is allowed. UFW & iptables are active and configured.
+Open ports to the Kubernetes Node (vmLM1):
+* 22/TCP -> SSH
+* 443/TCP -> Kubernetes API
+* 31650/TCP -> wikijs frontend
+* 8001/TCP -> Kubernetes Dashboard
+* 8443/TCP -> Docker API
+
+As far as the container network goes, only pods that need external acces are configured with NodePort. all the other pods are configured with Cluster IP for Kubernetes internal only communication.
+
+Also apparmor is active with policies loaded to run kubernetes & docker.
+This makes a huge impact on the kernel integrity and thus protects the containers/pods from potential threats.
+
+*Note: the credentials are only shown for demo purposes don´t commit your credentials to a public git repo! also always consider creating secret objects for kubernetes applications as it is unsecure to store credentials directly & unencrpyted in deployment files*
 
 ## Manual Setup Guide
 
@@ -99,13 +140,17 @@ sudo systemctl restart sshd
 
 # Update the System
 sudo apt update -y && apt upgrade -y
+
+# Install iptables-persistent
+sudo apt install iptables-persistent
+
+# Reboot the system
 ```
+
 
 > Now vmLM1 is accessible over ssh!
 
-### Install & initialy setup Kubernetes on vmLM1
-
-> Install docker as virtualizationlayer for kubernetes
+### Install docker as virtualizationlayer for kubernetes
 ```bash
 
 # Install needed packages to sync upstream apt repos
@@ -153,7 +198,7 @@ newgrp docker
 docker version
 ```
 
-> Install Minikube
+### Install Minikube
 
 ```bash
 
@@ -178,8 +223,204 @@ kubectl version --client --output=yaml
 # start minikube with docker driver
 minikube start --vm-driver docker
 
-# check status
+# Enable minikube dashboard
+minikube dashboard
+
+# open tunnel to access it from outside (stops working after command is aborted)
+kubectl proxy --address='0.0.0.0' --disable-filter=true
+
+# Access Dashboard from: http://192.168.110.60:8001/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/
+```
+
+### wiki.js deployment with external mariadb on minikube
+
+```bash
+
+# Create namespace for wikijs
+kubectl create namespace wikijs
+
+# Create project folder for deployment
+mkdir ~/projects/wiki-js
+
+# Create data path for persistant storage
+sudo mkdir /var/wikijs
+```
+#### Create hashed credentials for the deployment
+
+```bash
+# MySQL root user
+echo -n 'root' | base64
+# cm9vdA==
+
+# MySQL root user password
+echo -n 'password' | base64
+# cGFzc3dvcmQ=
+
+
+# Wiki.js MySQL database name
+echo -n 'wikijs' | base64
+# d2lraWpz
+
+# Wiki.js MySQL user
+echo -n 'wikijs' | base64
+# d2lraWpz
+
+# Wiki.js MySQL user Password
+echo -n 'password' | base64
+# cGFzc3dvcmQ=
+```
+
+#### Setup the secret file for the wikijs namespace
+> $ vim wikijs-secret.yaml #files are also in wikijs_k8s/
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-secret
+  namespace: wikijs
+type: Opaque
+data:
+  ROOT: cm9vdA==
+  ROOT_PASSWORD: cGFzc3dvcmQ=
+  DATABASE: d2lraWpz
+  USER: d2lraWpz
+  PASSWORD: cGFzc3dvcmQ=
+```
+```bash
+kubectl apply -f wikijs-secret.yaml
+```
+#### mariadb & wikijs config setup for k8s
+> $ vim wikijs-config.yaml
+```yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb
+  namespace: wikijs
+spec:
+  selector:
+    app: mariadb
+  ports:
+  - name: mariadb
+    protocol: TCP
+    port: 3306
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb
+  namespace: wikijs
+  labels:
+    app: mariadb
+spec:
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+      - name: mariadb
+        image: mariadb:latest
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: ROOT_PASSWORD
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: DATABASE
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: PASSWORD
+        - name: MARIADB_ROOT_HOST
+          value: "%"
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mariadb-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mariadb-storage
+        hostPath:
+          path: /var/wikijs
+          type: DirectoryOrCreate
+```
+```bash
+kubectl apply -f wikijs-config.yaml -n wikijs
+```
+#### setup wikijs service for k8s
+> $ vim wikijs-service.yaml
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: "wikijs"
+  namespace: wikijs
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 3000
+  selector:
+    app: "wikijs"
+
+```
+```bash
+kubectl apply -f wikijs-service.yaml
+```
+#### Setup Portforwarding & allow Firewall communication
+```bash
+# Get exposed service port for wikijs
+kubectl get svc -n wikijs
+# 31650/tcp in our case
+
+# Change: DEFAULT_FORWARD_POLICY="DENY" to DEFAULT_FORWARD_POLICY="ACCEPT"
+sudo vim /etc/default/ufw
+
+# Reload UFW
+sudo disable ufw
+sudo enable ufw
+
+# open the port on ufw
+sudo ufw allow 31650/tcp
+
+# uncomment the following line:
+# net.ipv4.ip_forward=1
+sudo vim /etc/sysctl.conf 
+
+# apply changes:
+sudo sysctl -p 
+
+sudo iptables -t nat -A PREROUTING -p tcp --dport 31650 -j DNAT --to-destination 192.168.49.2:31650
+```
+> Now wikijs is available from vmKL1! 
+
+
+#### Verify installation & useful commands
+```bash
+
+# Manage Runtime of Minikube
 minikube status
+microk8s stop
+microk8s start
+
+# Delete the micork8s cluster
+microk8s delete
 
 # list addons
 minikube addons list
@@ -190,21 +431,18 @@ kubectl cluster-info
 # show cluster nodes (should be only one)
 kubectl get nodes
 
+# Show Cluster Config (YAML)
 kubectl config view
 
-# Enable minikube dashboard
-minikube dashboard
+# Show all Cluster ressources in all namespaces
+kubectl get all --all-namespaces
 
-# open tunnel to access it from outside (stops working after command is aborted)
-kubectl proxy --address='0.0.0.0' --disable-filter=true
+# Show wikijs service
+kubectl get svc -n wikijs
 
-# Access Dashboard from: http://192.168.110.60:8001/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/
+# Show wikijs pods
+kubectl get pods -n wikijs
 
-
-
-syntax:                <svc>    <namespace>
-kubectl delete service kdash -n kubernetes-dashboard
-
+# Show wikijs deployment
+kubectl get deploy -n wikijs
 ```
-
-
