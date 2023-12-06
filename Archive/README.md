@@ -1,10 +1,13 @@
+sudosyko/k8s_awx
+
 # THIS PROJECT WAS ABORTED DUE TO THE PLATFORM LIMITATIONS!!!!!
 Mircok8s pods were stuck in startup loop:
+k8s couldnt write to local storage due to other pvc claiming blocking I/O on block level.
 
 ![smart-learn-plan](/Docs/Pictures/awx_fail.png)
 
 
-sudosyko/k8s_awx
+
 # SA II Project: awx & code-server on Kubernetes Cluster 
 ## About this Project 
 
