@@ -107,14 +107,24 @@ sudo apt update -y && apt upgrade -y
 
 > Install docker as virtualizationlayer for kubernetes
 ```bash
+
+# Install needed packages to sync upstream apt repos
 sudo apt install curl wget apt-transport-https -y
 sudo apt install ca-certificates curl apt-transport-https
+
+# Install the new gpg keys 
 sudo install -m 0755 -d /etc/apt/keyrings
+
+# fetch docker.io gpg keys
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# set access rights to downloaded key
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
 ```
 
 ```bash
+
+# install docker.io apt repository for corresponding os release
 echo \
   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
@@ -122,14 +132,24 @@ echo \
 ```
 
 ```bash
+
+# update local apt cache
 sudo apt update
+
+# install docker & dependencies
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose
 
+# check status
 systemctl status docker
 
+# start & enable docker on startup
 sudo systemctl start docker && sudo systemctl enable docker
+
+# set usercontext for vmadmin to use docker
 sudo usermod -aG docker $USER
 newgrp docker
+
+# check if setting the access rights worked
 docker version
 ```
 
@@ -137,39 +157,53 @@ docker version
 
 ```bash
 
+# Download the installation binary
 curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
 
+# Install the minikube binary
 sudo install minikube-linux-amd64 /usr/local/bin/minikube
 
+# Install Kubectl utility to manage cluster
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
 
 chmod +x ./kubectl
 
+# Set bash context for kubectl so we dont have to use the full path
 sudo mv kubectl /usr/local/bin/
 
+# check if installation works
 kubectl version --client --output=yaml
 
+# start minikube with docker driver
 minikube start --vm-driver docker
 
+# check status
 minikube status
 
+# list addons
 minikube addons list
 
+# show cluster info
 kubectl cluster-info
 
+# show cluster nodes (should be only one)
 kubectl get nodes
 
 kubectl config view
 
-minikube stop
-minikube delete
-
+# Enable minikube dashboard
 minikube dashboard
 
-kubectl proxy --address='192.168.110.70' --disable-filter=true
+# open tunnel to access it from outside (stops working after command is aborted)
+kubectl proxy --address='0.0.0.0' --disable-filter=true
+
+# Access Dashboard from: http://192.168.110.60:8001/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/
 
 
-http://192.168.110.60:8001/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/
+
+syntax:                <svc>    <namespace>
+kubectl delete service kdash -n kubernetes-dashboard
 
 ```
 
