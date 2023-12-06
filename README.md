@@ -413,6 +413,9 @@ sudo iptables -t nat -A PREROUTING -p tcp --dport 31650 -j DNAT --to-destination
 
 #### Verify installation & useful commands
 ```bash
+# wikijs web secrets
+# user: vmadmin@projekt.local
+# pw: password
 
 # Manage Runtime of Minikube
 minikube status
