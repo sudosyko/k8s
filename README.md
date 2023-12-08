@@ -111,6 +111,30 @@ This picture gives an overview of the implemented kubernetes architecture for th
 
 ![k8s_wikijs_architecture](/Docs/Pictures/k8s_wikijs_architecture.png)
 
+## Scaling 
+
+The example shown in this project isn`t really setup in a way that would permit any kind of scaling although here is a recomendation for productive implementation:
+
+### k8s Cluster
+Create a cluster with 3 Nodes, 1 being the Controlplane and 2 to be Worker Nodes.
+This ensures enough computing capacity and naturally allows a HA setup.
+Just make sure that you callculate the computing capacity correctly if you plan on doing HA.
+With this setup you have the Capacity of 3 Nodes (in LB setup) or 1 Node in HA setup (allowing 2 Nodes to be down).
+
+### wiki.js (frontend & wiki engine)
+Create an ingress configuration to manage & loadbalance your wikijs operation acording to the needed capacity. 
+
+Here is a KB article that shows how to do it: [Kubernetes Ingress with NGINX Ingress Controller Example](https://spacelift.io/blog/kubernetes-ingress)
+
+### Databse
+
+Dont scale the database horizontaly! Only make sure that you have a HA setup for the mariadb.
+Make sure you allocate enough space for the wiki installation and monitor the storage ressource in order to know the current storage capacity. Also change from hostPath storage to a pvc with an underlying distributed storage system like ceph.
+This way you have the storage pools available on all kubernetes nodes, whoch means your pods can be shifted between nodes. 
+
+Here is a KB article that shows how to do it: [How To Deploy Rook Ceph Storage on Kubernetes Cluster](https://computingforgeeks.com/how-to-deploy-rook-ceph-storage-on-kubernetes-cluster/)
+
+
 ## Security & Hardening
 The container network is setup in a way that only necessary communication is allowed. UFW & iptables are active and configured.
 Open ports to the Kubernetes Node (vmLM1):
