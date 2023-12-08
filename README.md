@@ -14,6 +14,23 @@ The goal is to install and build a Kubernetes cluster with the following require
 
 The repository also includes the ressources used for this project (check the archive for failed attempts 😉)
 
+## Kubernetes with Minikube
+
+For this example i built the cluster using minikube as the system ressources provided are very limited.
+Minikube is local Kubernetes, focusing on making it easy to learn and develop for Kubernetes and it`s installable on Linux, macOS and Windows.
+Minikube doesn't have a built-in container engine, but supports various container runtimes, including Docker, containerd, and others. For this project i used docker which is also documented below. The minimal version of docker needs to be 18.09 (20.10 or higher Reccomended)
+
+More requirements for minikube to start:
+
+* 2 CPUs or more.
+* 2GB of free memory.
+* Internet connection.
+* 20GB of free disk space. 
+
+Although this isn`t reccomended, it also worked with 10GB of free disk space, but it performed very bad like this.
+
+[Minikube/Docs](https://minikube.sigs.k8s.io/docs/)
+
 ## What is wiki.js ?
 
 Wiki.js is an open-source, modern wiki application that allows you to collaboratively create and edit content in a user-friendly manner. It is designed to be easy to set up and use, making it a popular choice for knowledge management, documentation, and information sharing within teams or organizations. Here are some key features and characteristics of Wiki.js:
@@ -31,6 +48,12 @@ Wiki.js is an open-source, modern wiki application that allows you to collaborat
 * Security Features
 
 Overall, Wiki.js is a versatile and feature-rich solution for creating and managing documentation and knowledge bases. It is well-suited for teams and organizations that prioritize collaboration, simplicity, and ease of use in their documentation processes.
+
+System Requirements incl. Database:
+
+* 2CPUs
+* 1GB RAM
+* min. 1GB (Depends on the amount of Data stored on the wiki)
 
 [wiki.js Official Homepage](https://js.wiki/)
 
@@ -77,9 +100,16 @@ The VM Specs are:
 
 Installed Software:
 
-* minikube version: v1.32.0
+* minikube version: v1.32.0 // Kubernetes 1.28.3
+* docker 
 * iptables
 * iptables-persitant
+
+## Architecture wiki.js 
+
+This picture gives an overview of the implemented kubernetes architecture for the wiki.js service: 
+
+![k8s_wikijs_architecture](/Docs/Pictures/k8s_wikijs_architecture.png)
 
 ## Security & Hardening
 The container network is setup in a way that only necessary communication is allowed. UFW & iptables are active and configured.
@@ -363,6 +393,60 @@ spec:
 ```bash
 kubectl apply -f wikijs-config.yaml -n wikijs
 ```
+
+#### mariadb & wikijs deployment setup for k8s
+> $ vim wikijs-deployment.yaml
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wikijs
+  namespace: wikijs
+  labels:
+    app: wikijs
+spec:
+  selector:
+    matchLabels:
+      app: wikijs
+  template:
+    metadata:
+      labels:
+        app: wikijs
+    spec:
+      containers:
+      - name: wikijs
+        image: requarks/wiki:latest
+        imagePullPolicy: Always
+        env:
+        - name: DB_TYPE
+          value: "mariadb"
+        - name: DB_HOST
+          value: "mariadb"
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: DATABASE
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: USER
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: PASSWORD
+        ports:
+        - containerPort: 3000
+          name: http
+```
+```bash
+kubectl apply -f wikijs-deployment.yaml -n wikijs
+```
+
 #### setup wikijs service for k8s
 > $ vim wikijs-service.yaml
 ```yaml
@@ -406,12 +490,13 @@ sudo vim /etc/sysctl.conf
 # apply changes:
 sudo sysctl -p 
 
+# setup portforwarding for external access (access from vmKL1)
 sudo iptables -t nat -A PREROUTING -p tcp --dport 31650 -j DNAT --to-destination 192.168.49.2:31650
 ```
 > Now wikijs is available from vmKL1! 
 
 
-#### Verify installation & useful commands
+## Verify installation & useful commands
 ```bash
 # wikijs web secrets
 # user: vmadmin@projekt.local
